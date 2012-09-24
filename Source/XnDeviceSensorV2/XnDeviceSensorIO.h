@@ -32,6 +32,18 @@
 #include "XnFirmwareInfo.h"
 
 //---------------------------------------------------------------------------
+// Defines
+//---------------------------------------------------------------------------
+#define XN_SENSOR_VENDOR_ID			0x1D27
+#define XN_SENSOR_2_0_PRODUCT_ID	0x0200
+#define XN_SENSOR_5_0_PRODUCT_ID	0x0500
+#define XN_SENSOR_6_0_PRODUCT_ID	0x0600
+#define XN_SENSOR_6_0_1_PRODUCT_ID      0x0601
+#define XN_SENSOR_MSK_VENDOR_ID   0x045E
+#define XN_SENSOR_K4X_PRODUCT_ID  0x02AE
+#define XN_SENSOR_K4W_PRODUCT_ID  0x02BF
+
+//---------------------------------------------------------------------------
 // Structures & Enums
 //---------------------------------------------------------------------------
 typedef struct XnUsbConnection

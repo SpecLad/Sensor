@@ -27,14 +27,6 @@
 #include <XnStringsHash.h>
 
 //---------------------------------------------------------------------------
-// Defines
-//---------------------------------------------------------------------------
-#define XN_SENSOR_VENDOR_ID			0x1D27
-#define XN_SENSOR_5_0_PRODUCT_ID	0x0500
-#define XN_SENSOR_6_0_PRODUCT_ID	0x0600
-#define XN_SENSOR_6_0_1_PRODUCT_ID	0x0601
-
-//---------------------------------------------------------------------------
 // Enums
 //---------------------------------------------------------------------------
 typedef enum
@@ -130,23 +122,29 @@ XnStatus XnSensorIO::OpenDataEndPoints(XnSensorUsbInterface nInterface, const Xn
 	XnStatus nRetVal = XN_STATUS_OK;
 
 	// try to set requested interface
-	if (nInterface != XN_SENSOR_USB_INTERFACE_DEFAULT)
+
+	XnUInt8 nAlternativeInterface = 0;
+
+	switch (nInterface)
 	{
-		XnUInt8 nAlternativeInterface = 0;
+	case XN_SENSOR_USB_INTERFACE_ISO_ENDPOINTS:
+		nAlternativeInterface = fwInfo.nISOAlternativeInterface;
+		break;
+	case XN_SENSOR_USB_INTERFACE_BULK_ENDPOINTS:
+		nAlternativeInterface = fwInfo.nBulkAlternativeInterface;
+		break;
+	default:
+		XN_ASSERT(FALSE);
+		XN_LOG_WARNING_RETURN(XN_STATUS_USB_INTERFACE_NOT_SUPPORTED, XN_MASK_DEVICE_IO, "Unknown interface type: %d", nInterface);
+	}
 
-		switch (nInterface)
-		{
-		case XN_SENSOR_USB_INTERFACE_ISO_ENDPOINTS:
-			nAlternativeInterface = fwInfo.nISOAlternativeInterface;
-			break;
-		case XN_SENSOR_USB_INTERFACE_BULK_ENDPOINTS:
-			nAlternativeInterface = fwInfo.nBulkAlternativeInterface;
-			break;
-		default:
-			XN_ASSERT(FALSE);
-			XN_LOG_WARNING_RETURN(XN_STATUS_USB_INTERFACE_NOT_SUPPORTED, XN_MASK_DEVICE_IO, "Unknown interface type: %d", nInterface);
-		}
+	if (nAlternativeInterface < 0)
+		XN_LOG_WARNING_RETURN(XN_STATUS_USB_INTERFACE_NOT_SUPPORTED, XN_MASK_DEVICE_IO, "Device doesn't support interface type: %d", nInterface);
 
+	// Only set the interface if there's more than one. Otherwise, the device may halt.
+	if ((fwInfo.nISOAlternativeInterface > 0 && fwInfo.nISOAlternativeInterface != XnUInt8(-1))
+		|| (fwInfo.nBulkAlternativeInterface > 0 && fwInfo.nBulkAlternativeInterface != XnUInt8(-1)))
+	{
 		xnLogVerbose(XN_MASK_DEVICE_IO, "Setting USB alternative interface to %d...", nAlternativeInterface);
 		nRetVal = xnUSBSetInterface(m_pSensorHandle->USBDevice, 0, nAlternativeInterface);
 		XN_IS_STATUS_OK(nRetVal);
@@ -356,14 +354,14 @@ XnStatus XnSensorIO::CloseDevice()
 	return (XN_STATUS_OK);
 }
 
-XnStatus Enumerate(XnUInt16 nProduct, XnStringsHash& devicesSet)
+XnStatus Enumerate(XnUInt16 nVendor, XnUInt16 nProduct, XnStringsHash& devicesSet)
 {
 	XnStatus nRetVal = XN_STATUS_OK;
 	
 	const XnUSBConnectionString* astrDevicePaths;
 	XnUInt32 nCount;
 
-	nRetVal = xnUSBEnumerateDevices(XN_SENSOR_VENDOR_ID, nProduct, &astrDevicePaths, &nCount);
+	nRetVal = xnUSBEnumerateDevices(nVendor, nProduct, &astrDevicePaths, &nCount);
 	XN_IS_STATUS_OK(nRetVal);
 
 	for (XnUInt32 i = 0; i < nCount; ++i)
@@ -391,28 +389,39 @@ XnStatus XnSensorIO::EnumerateSensors(XnConnectionString* aConnectionStrings, Xn
 	
 	if (devicesSet.Size() == 0)
 	{
-		// search for a v6.0.1 device
-		nRetVal = Enumerate(XN_SENSOR_6_0_1_PRODUCT_ID, devicesSet);
-		XN_IS_STATUS_OK(nRetVal);
-
-		// search for a v6.0 device
-		nRetVal = Enumerate(XN_SENSOR_6_0_PRODUCT_ID, devicesSet);
-		XN_IS_STATUS_OK(nRetVal);	
-	}
 #else
 	XnStringsHash devicesSet;
+#endif
+
+	// search for a Kinect for Xbox 360 device
+	nRetVal = Enumerate(XN_SENSOR_MSK_VENDOR_ID, XN_SENSOR_K4X_PRODUCT_ID, devicesSet);
+	XN_IS_STATUS_OK(nRetVal);
+
+	// search for a Kinect for Windows device
+	nRetVal = Enumerate(XN_SENSOR_MSK_VENDOR_ID, XN_SENSOR_K4W_PRODUCT_ID, devicesSet);
+	XN_IS_STATUS_OK(nRetVal);
 
 	// search for a v6.0.1 device
-	nRetVal = Enumerate(XN_SENSOR_6_0_1_PRODUCT_ID, devicesSet);
+	nRetVal = Enumerate(XN_SENSOR_VENDOR_ID, XN_SENSOR_6_0_1_PRODUCT_ID, devicesSet);
 	XN_IS_STATUS_OK(nRetVal);
 
 	// search for a v6.0 device
-	nRetVal = Enumerate(XN_SENSOR_6_0_PRODUCT_ID, devicesSet);
+	nRetVal = Enumerate(XN_SENSOR_VENDOR_ID, XN_SENSOR_6_0_PRODUCT_ID, devicesSet);
+	XN_IS_STATUS_OK(nRetVal);
+
+	// search for a v6.0.1 device
+	nRetVal = Enumerate(XN_SENSOR_VENDOR_ID, XN_SENSOR_5_0_PRODUCT_ID, devicesSet);
+	XN_IS_STATUS_OK(nRetVal);
+
+	// search for a v6.0 device
+	nRetVal = Enumerate(XN_SENSOR_VENDOR_ID, XN_SENSOR_2_0_PRODUCT_ID, devicesSet);
 	XN_IS_STATUS_OK(nRetVal);
 
 	// search for a v5.0 device
-	nRetVal = Enumerate(XN_SENSOR_5_0_PRODUCT_ID, devicesSet);
+	nRetVal = Enumerate(XN_SENSOR_VENDOR_ID, XN_SENSOR_5_0_PRODUCT_ID, devicesSet);
 	XN_IS_STATUS_OK(nRetVal);
+#if (XN_PLATFORM == XN_PLATFORM_MACOSX)
+  }
 #endif
 	
 	// now copy back
@@ -470,7 +479,8 @@ XnStatus XnSensorIO::SetCallback(XnUSBEventCallbackFunctionPtr pCallbackPtr, voi
 	XnStatus nRetVal = XN_STATUS_OK;
 	
 	// try to register callback to a 5.0 device
-	nRetVal = xnUSBSetCallbackHandler(XN_SENSOR_VENDOR_ID, XN_SENSOR_5_0_PRODUCT_ID, NULL, pCallbackPtr, pCallbackData);
+// --avin mod--
+//	nRetVal = xnUSBSetCallbackHandler(XN_SENSOR_VENDOR_ID, XN_SENSOR_5_0_PRODUCT_ID, NULL, pCallbackPtr, pCallbackData);
 
 	return nRetVal;
 }

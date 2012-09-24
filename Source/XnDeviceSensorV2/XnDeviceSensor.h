@@ -333,7 +333,8 @@ typedef struct XnDevicePrivateData
 
 	XN_MUTEX_HANDLE hExecuteMutex;
 
-
+	XnBool bKinect;
+	XnBool bKinectForWin;
 } XnDevicePrivateData;
 
 #pragma pack (push, 1)

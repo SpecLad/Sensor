@@ -319,6 +319,8 @@ XnStatus XnSensorDepthStream::ConfigureStreamImpl()
 	nRetVal = m_Helper.GetCmosInfo()->SetCmosConfig(XN_CMOS_TYPE_DEPTH, GetResolution(), GetFPS());
 	XN_IS_STATUS_OK(nRetVal);
 
+	// Thanks to avin again! :-)
+	XnHostProtocolSetParam(GetHelper()->GetPrivateData(), 0x105, 0);
 	return XN_STATUS_OK;
 }
 
@@ -792,7 +794,8 @@ XnStatus XnSensorDepthStream::DecideFirmwareRegistration(XnBool bRegistration, X
 	{
 		// old chip (PS1000) does not support registration for VGA
 		XnBool bHardwareRegistrationSupported = 
-			m_Helper.GetPrivateData()->ChipInfo.nChipVer != XN_SENSOR_CHIP_VER_PS1000 || nRes == XN_RESOLUTION_QVGA;
+			(m_Helper.GetPrivateData()->ChipInfo.nChipVer != XN_SENSOR_CHIP_VER_PS1000 || nRes == XN_RESOLUTION_QVGA)
+			&& !m_Helper.GetPrivateData()->bKinect;
 
 		switch (registrationType)
 		{

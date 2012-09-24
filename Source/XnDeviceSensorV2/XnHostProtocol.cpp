@@ -892,6 +892,18 @@ XnStatus XnHostProtocolGetVersion(XnDevicePrivateData* pDevicePrivateData, XnVer
 		}	
 	}
 
+	int nVid, nPid;
+	sscanf(pDevicePrivateData->DeviceConfig.cpConnectionString, "%x/%x", &nVid, &nPid);
+
+	pDevicePrivateData->bKinect = nVid == XN_SENSOR_MSK_VENDOR_ID;
+	pDevicePrivateData->bKinectForWin = pDevicePrivateData->bKinect && nPid == XN_SENSOR_K4W_PRODUCT_ID;
+
+	if (pDevicePrivateData->bKinect)
+	{
+		pDevicePrivateData->FWInfo.nISOAlternativeInterface = pDevicePrivateData->bKinectForWin ? 1 : 0;
+		pDevicePrivateData->FWInfo.nBulkAlternativeInterface = -1; // Kinect has no bulk endpoints.
+	}
+
 	xnLogInfo(XN_MASK_SENSOR_PROTOCOL, "Hardware versions: FW=%d.%d.%d (%d) HW=%d Chip=%d Sensor=%d SYS=%d", Version.nMajor, Version.nMinor, Version.nBuild, Version.FWVer, Version.HWVer, Version.ChipVer, Version.SensorVer, Version.nSystemVersion);
 
 	return XN_STATUS_OK;
