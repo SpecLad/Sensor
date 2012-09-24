@@ -74,6 +74,7 @@ INSTALL_LIB=$rootfs/usr/lib
 INSTALL_BIN=$rootfs/usr/bin
 INSTALL_ETC=$rootfs/usr/etc/primesense
 INSTALL_RULES=$rootfs/etc/udev/rules.d
+INSTALL_BLACKLIST=$rootfs/etc/modprobe.d
 SERVER_LOGS_DIR=$rootfs/var/log/primesense/XnSensorServer
 
 # make all calls into OpenNI run in this filesystem
@@ -129,6 +130,11 @@ if [ "$install" = yes ]; then
         # install USB rules (so that PrimeSense sensors will be mounted with write permissions)
         printf "installing usb rules..."
         cp Install/$RULES_FILE $INSTALL_RULES
+        printf "OK\n"
+
+        printf "installing modprobe blacklist..."
+        mkdir -p $INSTALL_BLACKLIST
+        echo 'blacklist gspca_kinect' > $INSTALL_BLACKLIST/blacklist-gspca-kinect.conf
         printf "OK\n"
     fi
 
